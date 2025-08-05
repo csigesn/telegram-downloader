@@ -2,28 +2,24 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    MessageHandler,
-    ContextTypes,
-    filters,
-)
+from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 from yt_dlp import YoutubeDL
 
-# 日志
+# 日志配置
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 环境变量
+# 读取环境变量
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     logger.error("请设置环境变量 TELEGRAM_BOT_TOKEN")
     exit(1)
 
+# 下载目录
 STORAGE = "/downloads"
 os.makedirs(STORAGE, exist_ok=True)
 
-# 下载并发送音频
+# 异步下载并发送
 async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
     chat_id = update.effective_chat.id
@@ -45,13 +41,12 @@ async def download_and_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error("下载失败", exc_info=e)
         await msg.edit_text("下载失败，请检查链接或稍后重试 ❌")
 
-# 主入口
-async def main():
+# 同步入口
+def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), download_and_send))
     logger.info("Bot 已启动，开始轮询…")
-    await app.run_polling()
+    app.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
