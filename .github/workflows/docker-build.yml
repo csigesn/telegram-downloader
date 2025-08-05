@@ -1,0 +1,44 @@
+name: CI / Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU (for multi-platform)
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/telegram-downloader:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/telegram-downloader:${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
+
+      - name: Show image details
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/telegram-downloader
+          tags: |
+            type=ref,event=branch  # main 分支推送生成 latest
+            type=ref,event=tag     # 打 Tag 时生成对应版本号
